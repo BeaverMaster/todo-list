@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aufgaben</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Aufgaben">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="Deine persönliche Todo-Liste im Apple Style">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sf': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'Roboto', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c0c0c0;
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+        }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .dark .glass {
+            background: rgba(28, 28, 30, 0.7);
+        }
+        
+        /* Animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+        }
+        .fade-out {
+            animation: fadeOut 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="font-sf bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-black min-h-screen transition-colors duration-300">
+    
+    <div class="min-h-screen flex flex-col">
+        
+        <!-- Header -->
+        <div class="glass p-4 sm:p-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 dark:text-white mb-1">
+                        📝 Aufgaben
+                    </h1>
+                    <p class="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                        Verwalte deine Aufgaben ganz einfach
+                    </p>
+                </div>
+                
+                <!-- Dark Mode Toggle -->
+                <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <span class="text-xl sm:text-2xl">☀️</span>
+                    <label class="relative inline-block w-14 h-8 cursor-pointer flex-shrink-0">
+                        <input 
+                            type="checkbox" 
+                            id="darkModeToggle"
+                            class="sr-only"
+                            onchange="toggleDarkMode()"
+                        >
+                        <div id="toggleBg" class="w-full h-full rounded-full bg-gray-300 transition-colors duration-300"></div>
+                        <div id="toggleCircle" class="absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 shadow-md"></div>
+                    </label>
+                    <span class="text-xl sm:text-2xl">🌙</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Todo Input -->
+        <div class="glass p-4 sm:p-6">
+            <div class="flex flex-col gap-3">
+                <input 
+                    type="text" 
+                    id="todoInput" 
+                    placeholder="Neue Aufgabe hinzufügen..."
+                    class="w-full px-5 py-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 text-gray-800 dark:text-white placeholder-gray-400 transition-all duration-200 text-base"
+                >
+                <button 
+                    onclick="createTodo()"
+                    class="w-full px-6 py-4 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-semibold rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-95 text-base"
+                >
+                    Hinzufügen
+                </button>
+            </div>
+        </div>
+
+        <!-- Weekday Selector -->
+        <div class="glass p-3">
+            <div class="grid grid-cols-8 gap-1">
+                <button 
+                    id="weekday-all"
+                    onclick="console.log('Alle clicked'); filterWeekday(null);"
+                    class="weekday-btn px-2 py-2 rounded-xl font-medium transition-all duration-200 bg-blue-500 text-white text-xs active:scale-95 touch-manipulation"
+                >
+                    Alle
+                </button>
+                <button 
+                    id="weekday-monday"
+                    onclick="console.log('Monday clicked'); filterWeekday('monday');"
+                    class="weekday-btn px-2 py-2 rounded-xl font-medium transition-all duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs active:scale-95 touch-manipulation"
+                >
+                    Mo
+                </button>
+                <button 
+                    id="weekday-tuesday"
+                    onclick="console.log('Tuesday clicked'); filterWeekday('tuesday');"
+                    class="weekday-btn px-2 py-2 rounded-xl font-medium transition-all duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs active:scale-95 touch-manipulation"
+                >
+                    Di
+                </button>
+                <button 
+                    id="weekday-wednesday"
+                    onclick="console.log('Wednesday clicked'); filterWeekday('wednesday');"
+                    class="weekday-btn px-2 py-2 rounded-xl font-medium transition-all duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs active:scale-95 touch-manipulation"
+                >
+                    Mi
+                </button>
+                <button 
+                    id="weekday-thursday"
+                    onclick="console.log('Thursday clicked'); filterWeekday('thursday');"
+                    class="weekday-btn px-2 py-2 rounded-xl font-medium transition-all duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs active:scale-95 touch-manipulation"
+                >
+                    Do
+                </button>
+                <button 
+                    id="weekday-friday"
+                    onclick="console.log('Friday clicked'); filterWeekday('friday');"
+                    class="weekday-btn px-2 py-2 rounded-xl font-medium transition-all duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs active:scale-95 touch-manipulation"
+                >
+                    Fr
+                </button>
+                <button 
+                    id="weekday-saturday"
+                    onclick="console.log('Saturday clicked'); filterWeekday('saturday');"
+                    class="weekday-btn px-2 py-2 rounded-xl font-medium transition-all duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs active:scale-95 touch-manipulation"
+                >
+                    Sa
+                </button>
+                <button 
+                    id="weekday-sunday"
+                    onclick="console.log('Sunday clicked'); filterWeekday('sunday');"
+                    class="weekday-btn px-2 py-2 rounded-xl font-medium transition-all duration-200 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs active:scale-95 touch-manipulation"
+                >
+                    So
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Buttons -->
+        <div class="glass p-4 sm:p-5">
+            <div class="flex gap-2 justify-stretch">
+                <button 
+                    onclick="setFilter('all')" 
+                    id="filterAll"
+                    class="filter-btn flex-1 px-4 py-3 rounded-2xl font-medium transition-all duration-200 bg-blue-500 text-white text-base"
+                >
+                    Alle
+                </button>
+                <button 
+                    onclick="setFilter('active')" 
+                    id="filterActive"
+                    class="filter-btn flex-1 px-4 py-3 rounded-2xl font-medium transition-all duration-200 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 text-base"
+                >
+                    Aktiv
+                </button>
+                <button 
+                    onclick="setFilter('completed')" 
+                    id="filterCompleted"
+                    class="filter-btn flex-1 px-4 py-3 rounded-2xl font-medium transition-all duration-200 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 text-base"
+                >
+                    Erledigt
+                </button>
+            </div>
+        </div>
+
+        <!-- Todo List -->
+        <div class="glass flex-1 p-4 sm:p-6 overflow-y-auto">
+            <div id="todoList" class="space-y-3">
+                <!-- Todos will be rendered here -->
+            </div>
+            
+            <div id="emptyState" class="hidden text-center py-12">
+                <div class="text-6xl mb-4">🎉</div>
+                <p class="text-gray-500 dark:text-gray-400 text-lg">
+                    Keine Aufgaben vorhanden
+                </p>
+                <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">
+                    Füge eine neue Aufgabe hinzu, um loszulegen
+                </p>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="glass p-4 sm:p-6">
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                    <div class="text-3xl font-bold text-blue-500 dark:text-blue-400" id="totalCount">0</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Gesamt</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-green-500 dark:text-green-400" id="activeCount">0</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Aktiv</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-purple-500 dark:text-purple-400" id="completedCount">0</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Erledigt</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        console.log('🚀 Todo App gestartet');
+        
+        // Helper Functions (must be defined first)
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        function getWeekdayName(weekday) {
+            const names = {
+                'monday': 'Montag',
+                'tuesday': 'Dienstag',
+                'wednesday': 'Mittwoch',
+                'thursday': 'Donnerstag',
+                'friday': 'Freitag',
+                'saturday': 'Samstag',
+                'sunday': 'Sonntag'
+            };
+            return names[weekday] || weekday;
+        }
+        
+        // State Management
+        let todos = [];
+        let currentFilter = 'all';
+        let currentWeekday = null; // null = alle Tage
+        let darkMode = false;
+        let editingId = null;
+
+        // Initialize App
+        function init() {
+            console.log('⚙️ App wird initialisiert...');
+            loadFromLocalStorage();
+            applyDarkMode();
+            renderTodos();
+            setupEventListeners();
+            console.log('✅ App initialisiert');
+        }
+
+        // Event Listeners Setup
+        function setupEventListeners() {
+            // Enter key for todo input
+            document.getElementById('todoInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    createTodo();
+                }
+            });
+        }
+
+        // LocalStorage Functions
+        function loadFromLocalStorage() {
+            const data = localStorage.getItem('appleTodos');
+            if (data) {
+                const parsed = JSON.parse(data);
+                todos = parsed.todos || [];
+                darkMode = parsed.darkMode || false;
+                console.log('📦 Daten geladen:', { todos: todos.length, darkMode });
+            }
+        }
+
+        function saveToLocalStorage() {
+            const data = {
+                todos: todos,
+                darkMode: darkMode
+            };
+            localStorage.setItem('appleTodos', JSON.stringify(data));
+            console.log('💾 Daten gespeichert');
+        }
+
+        // Dark Mode Functions
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            console.log('🌓 Dark Mode:', darkMode ? 'AN' : 'AUS');
+            applyDarkMode();
+            saveToLocalStorage();
+        }
+
+        function applyDarkMode() {
+            const toggle = document.getElementById('darkModeToggle');
+            const toggleBg = document.getElementById('toggleBg');
+            const toggleCircle = document.getElementById('toggleCircle');
+            
+            if (darkMode) {
+                document.documentElement.classList.add('dark');
+                toggle.checked = true;
+                toggleBg.classList.remove('bg-gray-300');
+                toggleBg.classList.add('bg-blue-500');
+                toggleCircle.style.transform = 'translateX(24px)';
+            } else {
+                document.documentElement.classList.remove('dark');
+                toggle.checked = false;
+                toggleBg.classList.remove('bg-blue-500');
+                toggleBg.classList.add('bg-gray-300');
+                toggleCircle.style.transform = 'translateX(0)';
+            }
+        }
+
+        // CRUD Operations
+
+        // CREATE
+        function createTodo() {
+            const input = document.getElementById('todoInput');
+            const text = input.value.trim();
+            
+            if (text === '') {
+                input.focus();
+                return;
+            }
+
+            const todo = {
+                id: Date.now(),
+                text: text,
+                completed: false,
+                priority: 'none', // none, medium, high
+                weekday: null, // null, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            todos.unshift(todo);
+            saveToLocalStorage();
+            input.value = '';
+            renderTodos();
+            
+            console.log('✅ Todo erstellt:', todo.text);
+        }
+
+        // READ (filter)
+        function getFilteredTodos() {
+            console.log('🔍 getFilteredTodos called');
+            console.log('  - Total todos:', todos.length);
+            console.log('  - Current filter:', currentFilter);
+            console.log('  - Current weekday:', currentWeekday);
+            
+            let filtered = todos;
+            
+            // Filter by completion status
+            if (currentFilter === 'active') {
+                filtered = filtered.filter(t => !t.completed);
+                console.log('  - After active filter:', filtered.length);
+            } else if (currentFilter === 'completed') {
+                filtered = filtered.filter(t => t.completed);
+                console.log('  - After completed filter:', filtered.length);
+            }
+            
+            // Filter by weekday (only if a weekday is selected)
+            if (currentWeekday) {
+                console.log('  - Filtering by weekday:', currentWeekday);
+                filtered = filtered.filter(t => {
+                    console.log(`    Todo "${t.text}" has weekday: ${t.weekday}`);
+                    return t.weekday === currentWeekday;
+                });
+                console.log('  - After weekday filter:', filtered.length);
+            }
+            
+            console.log('  - Final filtered count:', filtered.length);
+            return filtered;
+        }
+
+        // UPDATE (toggle completed)
+        function toggleTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                todo.updatedAt = new Date().toISOString();
+                saveToLocalStorage();
+                renderTodos();
+                console.log('✓ Todo Status geändert:', todo.text, 'Erledigt:', todo.completed);
+            }
+        }
+
+        // UPDATE (priority)
+        function setPriority(id, priority) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                // Toggle priority: if same priority clicked, remove it
+                if (todo.priority === priority) {
+                    todo.priority = 'none';
+                } else {
+                    todo.priority = priority;
+                }
+                todo.updatedAt = new Date().toISOString();
+                saveToLocalStorage();
+                renderTodos();
+                console.log('🎯 Priorität geändert:', todo.text, 'Priorität:', todo.priority);
+            }
+        }
+        
+        // UPDATE (weekday)
+        function setWeekday(id, weekday) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                // Set weekday (empty string = null)
+                todo.weekday = weekday || null;
+                todo.updatedAt = new Date().toISOString();
+                saveToLocalStorage();
+                renderTodos();
+                console.log('📅 Wochentag geändert:', todo.text, 'Tag:', todo.weekday);
+            }
+        }
+
+        // UPDATE (edit text)
+        function enableEdit(id) {
+            const todo = todos.find(t => t.id === id);
+            if (!todo || todo.completed) return;
+
+            editingId = id;
+            console.log('✏️ Bearbeiten gestartet:', todo.text);
+            
+            const todoElement = document.querySelector(`[data-id="${id}"]`);
+            const textSpan = todoElement.querySelector('.todo-text');
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = todo.text;
+            input.className = 'flex-1 px-3 py-2 bg-white dark:bg-gray-700 border-2 border-blue-500 rounded-xl focus:outline-none text-gray-800 dark:text-white';
+            
+            const saveEdit = () => {
+                const newText = input.value.trim();
+                if (newText && newText !== todo.text) {
+                    todo.text = newText;
+                    todo.updatedAt = new Date().toISOString();
+                    saveToLocalStorage();
+                    console.log('💾 Todo aktualisiert:', newText);
+                }
+                editingId = null;
+                renderTodos();
+            };
+
+            input.onblur = saveEdit;
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    saveEdit();
+                } else if (e.key === 'Escape') {
+                    editingId = null;
+                    renderTodos();
+                }
+            };
+
+            textSpan.replaceWith(input);
+            input.focus();
+            input.select();
+        }
+
+        // DELETE
+        function deleteTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            console.log('🗑️ Lösche Todo:', todo ? todo.text : id);
+            
+            const index = todos.findIndex(t => t.id === id);
+            if (index > -1) {
+                // Animation
+                const element = document.querySelector(`[data-id="${id}"]`);
+                if (element) {
+                    element.classList.add('fade-out');
+                    setTimeout(() => {
+                        todos.splice(index, 1);
+                        saveToLocalStorage();
+                        renderTodos();
+                        console.log('✅ Todo gelöscht');
+                    }, 300);
+                } else {
+                    todos.splice(index, 1);
+                    saveToLocalStorage();
+                    renderTodos();
+                }
+            }
+        }
+
+        // Filter Functions
+        function setFilter(filter) {
+            currentFilter = filter;
+            console.log('🔍 Filter gewechselt:', filter);
+            
+            // Reset all buttons to inactive state
+            const allBtn = document.getElementById('filterAll');
+            const activeBtn = document.getElementById('filterActive');
+            const completedBtn = document.getElementById('filterCompleted');
+            
+            // Remove active class from all
+            [allBtn, activeBtn, completedBtn].forEach(btn => {
+                btn.className = 'filter-btn flex-1 px-4 py-3 rounded-2xl font-medium transition-all duration-200 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 text-base';
+            });
+            
+            // Set active button
+            let targetBtn;
+            if (filter === 'all') targetBtn = allBtn;
+            else if (filter === 'active') targetBtn = activeBtn;
+            else if (filter === 'completed') targetBtn = completedBtn;
+            
+            if (targetBtn) {
+                targetBtn.className = 'filter-btn flex-1 px-4 py-3 rounded-2xl font-medium transition-all duration-200 bg-blue-500 text-white text-base';
+            }
+            
+            renderTodos();
+        }
+        
+        // Weekday Filter
+        function filterWeekday(weekday) {
+            currentWeekday = weekday; // Set to null for 'Alle', or the weekday string
+            console.log('📅 Wochentag-Filter:', currentWeekday || 'Alle');
+            
+            // Update weekday button styles
+            updateWeekdayButtons();
+            renderTodos();
+        }
+        
+        function updateWeekdayButtons() {
+            const allDays = ['all', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            
+            console.log('🔄 Updating weekday buttons, current:', currentWeekday);
+            
+            allDays.forEach(day => {
+                const btn = document.getElementById(`weekday-${day}`);
+                if (btn) {
+                    // Check if this button should be active
+                    const isActive = (day === 'all' && currentWeekday === null) || (currentWeekday === day);
+                    
+                    // Remove all state classes first
+                    btn.className = 'weekday-btn px-2 py-2 rounded-xl font-medium transition-all duration-200 text-xs active:scale-95 touch-manipulation';
+                    
+                    // Add appropriate classes
+                    if (isActive) {
+                        btn.classList.add('bg-blue-500', 'text-white');
+                        console.log('✅ Button active:', day);
+                    } else {
+                        btn.classList.add('bg-white', 'dark:bg-gray-800', 'text-gray-700', 'dark:text-gray-300', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+                    }
+                }
+            });
+        }
+
+        // Render Functions
+        function renderTodos() {
+            const filteredTodos = getFilteredTodos();
+            const todoList = document.getElementById('todoList');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filteredTodos.length === 0) {
+                todoList.innerHTML = '';
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                todoList.innerHTML = filteredTodos.map(todo => {
+                    // Determine background color based on priority and completion
+                    let bgClass = '';
+                    let borderClass = '';
+                    
+                    if (todo.completed) {
+                        bgClass = 'bg-green-50 dark:bg-green-900/20';
+                        borderClass = 'border-2 border-green-300 dark:border-green-700';
+                    } else if (todo.priority === 'high') {
+                        bgClass = 'bg-red-50 dark:bg-red-900/20';
+                        borderClass = 'border-2 border-red-300 dark:border-red-700';
+                    } else if (todo.priority === 'medium') {
+                        bgClass = 'bg-yellow-50 dark:bg-yellow-900/20';
+                        borderClass = 'border-2 border-yellow-300 dark:border-yellow-700';
+                    } else {
+                        bgClass = 'bg-white dark:bg-gray-800';
+                        borderClass = '';
+                    }
+                    
+                    return `
+                    <div class="slide-in flex items-center gap-3 p-4 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 ${bgClass} ${borderClass}" data-id="${todo.id}">
+                        
+                        <!-- Checkbox -->
+                        <input 
+                            type="checkbox" 
+                            ${todo.completed ? 'checked' : ''}
+                            onclick="toggleTodo(${todo.id})"
+                            class="w-7 h-7 flex-shrink-0 rounded-full border-2 border-gray-300 dark:border-gray-600 checked:bg-blue-500 checked:border-blue-500 cursor-pointer transition-all duration-200"
+                        >
+                        
+                        <!-- Text -->
+                        <div class="flex flex-col gap-1 flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span 
+                                    ondblclick="enableEdit(${todo.id})"
+                                    class="todo-text text-base leading-relaxed text-gray-800 dark:text-white ${todo.completed ? 'text-gray-400 dark:text-gray-500' : ''} cursor-text break-words"
+                                >
+                                    ${escapeHtml(todo.text)}
+                                </span>
+                                ${todo.completed ? '<span class="text-green-500 text-xl flex-shrink-0">✓</span>' : ''}
+                            </div>
+                            ${!todo.completed && todo.weekday ? `
+                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                    📅 ${getWeekdayName(todo.weekday)}
+                                </span>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Weekday Selector (only for active todos) -->
+                        ${!todo.completed ? `
+                        <select 
+                            onchange="setWeekday(${todo.id}, this.value)"
+                            class="px-2 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 cursor-pointer touch-manipulation"
+                        >
+                            <option value="">Tag wählen</option>
+                            <option value="monday" ${todo.weekday === 'monday' ? 'selected' : ''}>Mo</option>
+                            <option value="tuesday" ${todo.weekday === 'tuesday' ? 'selected' : ''}>Di</option>
+                            <option value="wednesday" ${todo.weekday === 'wednesday' ? 'selected' : ''}>Mi</option>
+                            <option value="thursday" ${todo.weekday === 'thursday' ? 'selected' : ''}>Do</option>
+                            <option value="friday" ${todo.weekday === 'friday' ? 'selected' : ''}>Fr</option>
+                            <option value="saturday" ${todo.weekday === 'saturday' ? 'selected' : ''}>Sa</option>
+                            <option value="sunday" ${todo.weekday === 'sunday' ? 'selected' : ''}>So</option>
+                        </select>
+                        ` : ''}
+                        
+                        <!-- Priority Checkboxes -->
+                        ${!todo.completed ? `
+                        <div class="flex gap-2 items-center flex-shrink-0">
+                            <label class="flex items-center gap-1 cursor-pointer group touch-manipulation" title="Gelb - Mittlere Priorität">
+                                <input 
+                                    type="checkbox" 
+                                    ${todo.priority === 'medium' ? 'checked' : ''}
+                                    onclick="setPriority(${todo.id}, 'medium')"
+                                    class="w-6 h-6 rounded border-2 border-yellow-400 checked:bg-yellow-400 checked:border-yellow-400 cursor-pointer transition-all duration-200"
+                                >
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer group touch-manipulation" title="Rot - Hohe Priorität">
+                                <input 
+                                    type="checkbox" 
+                                    ${todo.priority === 'high' ? 'checked' : ''}
+                                    onclick="setPriority(${todo.id}, 'high')"
+                                    class="w-6 h-6 rounded border-2 border-red-400 checked:bg-red-400 checked:border-red-400 cursor-pointer transition-all duration-200"
+                                >
+                            </label>
+                        </div>
+                        ` : ''}
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex gap-2 flex-shrink-0">
+                            ${!todo.completed ? `
+                                <button 
+                                    onclick="enableEdit(${todo.id})"
+                                    class="p-3 text-xl text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all duration-200 active:scale-95 touch-manipulation"
+                                    title="Bearbeiten"
+                                >
+                                    ✏️
+                                </button>
+                            ` : ''}
+                            <button 
+                                onclick="deleteTodo(${todo.id})"
+                                class="p-3 text-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all duration-200 active:scale-95 touch-manipulation"
+                                title="Löschen"
+                            >
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+            }
+
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('totalCount').textContent = todos.length;
+            document.getElementById('activeCount').textContent = todos.filter(t => !t.completed).length;
+            document.getElementById('completedCount').textContent = todos.filter(t => t.completed).length;
+        }
+
+        // Initialize on load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+        
+        // Generate App Icon dynamically
+        function generateAppIcon() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 180;
+            canvas.height = 180;
+            const ctx = canvas.getContext('2d');
+            
+            // Gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 180, 180);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            
+            // Rounded rectangle
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 180, 180, 40);
+            ctx.fill();
+            
+            // White circle (subtle background)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.beginPath();
+            ctx.arc(90, 85, 50, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Checkmark
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 12;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(60, 85);
+            ctx.lineTo(80, 105);
+            ctx.lineTo(120, 65);
+            ctx.stroke();
+            
+            // Convert to data URL and set as apple-touch-icon
+            const iconUrl = canvas.toDataURL('image/png');
+            
+            // Create or update apple-touch-icon link
+            let appleTouchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+            if (!appleTouchIcon) {
+                appleTouchIcon = document.createElement('link');
+                appleTouchIcon.rel = 'apple-touch-icon';
+                document.head.appendChild(appleTouchIcon);
+            }
+            appleTouchIcon.href = iconUrl;
+            
+            // Also set as favicon
+            let favicon = document.querySelector('link[rel="icon"]');
+            if (!favicon) {
+                favicon = document.createElement('link');
+                favicon.rel = 'icon';
+                document.head.appendChild(favicon);
+            }
+            favicon.href = iconUrl;
+            
+            console.log('📱 App Icon generiert');
+        }
+        
+        // Generate icon on load
+        generateAppIcon();
+    </script>
+
+</body>
+</html>
